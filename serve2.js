@@ -1,12 +1,6 @@
 const express = require('express')
 const path = require('path')
 const app = express()
-
-const history = require('connect-history-api-fallback')
-app.use(history())
-app.use(express.static(path.join(__dirname, 'dist')))
-var bodyParser = require('body-parser')
-
 //跨域
 app.all('*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*')
@@ -20,6 +14,39 @@ app.all('*', function (req, res, next) {
   /*让options请求快速返回*/ else next()
 })
 
+//socket.io引入
+const http = require('http').createServer(app)
+http.listen(3001)
+// const server = app.listen(3001)
+const io = require('socket.io')(http, { cors: true })
+
+io.on('connection', (socket) => {
+  console.log('connect')
+  app.listen(12312, function () {
+    console.log('服务开启成功')
+  })
+})
+//redis
+// const redis = require('./redis/redisConfig')
+// redis.setValue('testKey', 'testValue')
+const redis = require('redis')
+const client = redis.createClient(6379, 'localhost')
+
+client.on('error', function (err) {
+  // console.log('Error ' + err)
+})
+
+// console.log(client.connection_options)
+
+//history路由模式解决
+const history = require('connect-history-api-fallback')
+app.use(history())
+app.use(express.static(path.join(__dirname, 'dist')))
+var bodyParser = require('body-parser')
+
+// 数据库文档
+// https://www.sequelize.com.cn/core-concepts/getting-started
+
 const mysql = require('mysql')
 var connsql = mysql.createConnection({
   host: '127.0.0.1',
@@ -32,6 +59,8 @@ connsql.connect()
 
 // app.engine('html', require(' '))
 // app.use('/public', express.static('dist'))
+
+// const util = require('util')
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
@@ -63,31 +92,31 @@ app.use('/register', (req, res) => {
   function regfun() {
     connsql.query(regssql, (err, result) => {
       if (err) {
-        console.log(err)
+        // console.log(err)
         return
       }
       res.json({
         code: 1,
         msg: '注册成功',
       })
-      console.log(regs.user, '注册成功')
+      // console.log(regs.user, '注册成功')
     })
   }
   connsql.query(selsql, (err, result) => {
     if (err) {
-      console.log(err)
+      // console.log(err)
       return
     }
     if (result == '') {
       regfun()
     } else {
       res.json({ code: -1, msg: '注册失败，用户名已存在' })
-      console.log(regs.user + '用户名已存在')
+      // console.log(regs.user + '用户名已存在')
     }
   })
 })
 app.use('/login', (req, res) => {
-  console.log(req, 'req')
+  // console.log(req, 'req')
   var login = {
     user: req.body.user, //获取input中的user值
     pwd: req.body.pwd,
@@ -100,17 +129,17 @@ app.use('/login', (req, res) => {
     "'"
   connsql.query(loginsql, (err, result) => {
     if (err) {
-      console.log('err message:', err)
+      // console.log('err message:', err)
       return
     }
     if (result == '') {
-      console.log('用户名或密码错误！')
+      // console.log('用户名或密码错误！')
       res.json({
         code: -1,
         msg: '用户名或密码错误！',
       })
     } else {
-      console.log('用户名密码匹配成功')
+      // console.log('用户名密码匹配成功')
       res.json({
         code: 1,
         msg: '登录成功',
@@ -118,4 +147,3 @@ app.use('/login', (req, res) => {
     }
   })
 })
-app.listen(3001)
